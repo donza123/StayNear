@@ -95,6 +95,16 @@
         .bounce-in-custom {
             transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
+        
+        /* สไตล์สำหรับ input date */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: 0.2s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="antialiased flex flex-col min-h-screen">
@@ -405,20 +415,32 @@
                 <h2 class="text-2xl font-bold text-[#1e3a8a] mb-1">สรุปการจองที่พัก</h2>
                 <p id="booking-user-info" class="text-gray-500 text-sm mb-6 pb-4 border-b border-gray-100">กรุณาเข้าสู่ระบบก่อนทำการจอง</p>
 
+                <!-- เลือกวันที่ -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-[#f8fafc] p-4 rounded-xl border border-gray-100">
-                        <p class="text-xs text-gray-500 mb-1">เช็คอิน</p>
-                        <p class="font-bold text-[#1e3a8a] flex items-center"><i class="fa-regular fa-calendar text-blue-500 mr-2"></i> <span id="booking-date-in">ระบุวันที่</span></p>
+                    <div class="bg-[#f8fafc] p-4 rounded-xl border border-gray-100 relative group transition hover:border-blue-300">
+                        <label for="booking-date-in" class="text-xs text-gray-500 mb-1 block cursor-pointer">เช็คอิน</label>
+                        <div class="font-bold text-[#1e3a8a] flex items-center">
+                            <i class="fa-regular fa-calendar text-blue-500 mr-2"></i> 
+                            <input type="date" id="booking-date-in" class="bg-transparent outline-none w-full cursor-pointer text-sm" onchange="calculateBookingPrice()">
+                        </div>
                     </div>
-                    <div class="bg-[#f8fafc] p-4 rounded-xl border border-gray-100">
-                        <p class="text-xs text-gray-500 mb-1">เช็คเอาท์</p>
-                        <p class="font-bold text-[#1e3a8a] flex items-center"><i class="fa-regular fa-calendar text-blue-500 mr-2"></i> <span id="booking-date-out">ระบุวันที่</span></p>
+                    <div class="bg-[#f8fafc] p-4 rounded-xl border border-gray-100 relative group transition hover:border-blue-300">
+                        <label for="booking-date-out" class="text-xs text-gray-500 mb-1 block cursor-pointer">เช็คเอาท์</label>
+                        <div class="font-bold text-[#1e3a8a] flex items-center">
+                            <i class="fa-regular fa-calendar text-blue-500 mr-2"></i> 
+                            <input type="date" id="booking-date-out" class="bg-transparent outline-none w-full cursor-pointer text-sm" onchange="calculateBookingPrice()">
+                        </div>
                     </div>
                 </div>
 
+                <!-- สรุปราคา -->
                 <div class="bg-[#f8fafc] p-5 rounded-xl border border-gray-100 mb-6">
-                    <div class="flex justify-between items-center">
-                        <span class="font-medium text-gray-600">ยอดชำระสุทธิ</span>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm text-gray-500 font-medium" id="booking-price-calc">฿0 x 0 คืน</span>
+                        <span class="text-sm font-medium text-gray-600">ยอดชำระ</span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-200 pt-3 mt-2">
+                        <span class="font-medium text-gray-800">รวมทั้งสิ้น</span>
                         <span id="booking-total" class="text-2xl font-bold text-[#0284c7]">฿0</span>
                     </div>
                 </div>
@@ -479,7 +501,7 @@
     <!-- ================= JAVASCRIPT ================= -->
     <script>
         // ใส่ URL Web App ของคุณที่นี่
-        const API_URL = "https://script.google.com/macros/s/AKfycbxjbLmwaSOT5wbT1bL21uVx8cvFcnlNwMGA6GizeTA3m-Av_N12_5l6hLevck8e33c/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzqISv50n2m-2WHjh4jyB7ftgFWO6_y1fBcbYymgJJGgLHDAZtRAzPSJB1ObNUebde3/exec";
         
         let hotelData = []; 
         let currentUser = null;
@@ -727,9 +749,67 @@
             }
         }
 
-        // ระบบจอง
+        // ==========================================
+        // ระบบจอง (เลือกวันที่ & คำนวณราคาอัตโนมัติ)
+        // ==========================================
         let currentBookingHotel = null;
         let bookingTotalPrice = 0;
+
+        // ฟังก์ชันแปลงวันที่สำหรับ input[type="date"] (YYYY-MM-DD)
+        function formatDateForInput(date) {
+            const d = new Date(date);
+            let month = '' + (d.getMonth() + 1);
+            let day = '' + d.getDate();
+            const year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        }
+
+        // ฟังก์ชันคำนวณราคาสุทธิเมื่อเปลี่ยนวันที่
+        function calculateBookingPrice() {
+            if (!currentBookingHotel) return;
+
+            const dateInInput = document.getElementById('booking-date-in');
+            const dateOutInput = document.getElementById('booking-date-out');
+            const btnConfirm = document.getElementById('btn-confirm-booking');
+            
+            // อัปเดตเงื่อนไขให้วันเช็คเอาท์ต้องไม่น้อยกว่าวันเช็คอินเสมอ
+            if(dateInInput.value) {
+                const minOutDate = new Date(dateInInput.value);
+                minOutDate.setDate(minOutDate.getDate() + 1); // เช็คเอาท์ขั้นต่ำต้อง 1 วันถัดไป
+                dateOutInput.min = formatDateForInput(minOutDate);
+            }
+
+            if (!dateInInput.value || !dateOutInput.value) return;
+
+            const checkInDate = new Date(dateInInput.value);
+            const checkOutDate = new Date(dateOutInput.value);
+
+            // คำนวณจำนวนวัน (1 วัน = 1000ms * 3600s * 24h)
+            const timeDiff = checkOutDate.getTime() - checkInDate.getTime();
+            const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+            if (nights <= 0) {
+                document.getElementById('booking-price-calc').innerText = `วันที่ไม่ถูกต้อง`;
+                document.getElementById('booking-total').innerText = `฿0`;
+                // ปิดปุ่มกดยืนยัน
+                btnConfirm.disabled = true;
+                btnConfirm.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+
+            // เปิดปุ่มยืนยัน
+            btnConfirm.disabled = false;
+            btnConfirm.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            // คำนวณราคา
+            bookingTotalPrice = currentBookingHotel.price * nights;
+            document.getElementById('booking-price-calc').innerText = `฿${currentBookingHotel.price.toLocaleString()} x ${nights} คืน`;
+            document.getElementById('booking-total').innerText = `฿${bookingTotalPrice.toLocaleString()}`;
+        }
 
         function openBookingModal(hotelId) {
             if(!currentUser) {
@@ -748,9 +828,8 @@
             
             // --- สร้างแกลลอรี่ภาพพัก ---
             const galleryContainer = document.getElementById('booking-gallery');
-            galleryContainer.innerHTML = ''; // ล้างแกลลอรี่เดิมทิ้ง
+            galleryContainer.innerHTML = ''; 
             
-            // ดึงรูปแกลลอรี่ (ถ้าใน API ไม่มี จะสุ่มภาพมุมห้องต่างๆ เข้าไปให้แทน)
             const images = currentBookingHotel.gallery && currentBookingHotel.gallery.length > 0 
                 ? currentBookingHotel.gallery 
                 : [
@@ -760,16 +839,13 @@
                     "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800"  // ห้องน้ำ
                 ];
 
-            // สร้างรูปเล็กๆ (Thumbnails)
             images.forEach((src, idx) => {
                 const thumb = document.createElement('img');
                 thumb.src = src;
                 thumb.className = `w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg cursor-pointer border-2 transition-all hover:opacity-100 flex-shrink-0 ${idx === 0 ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60'}`;
                 
-                // เมื่อคลิกที่รูปเล็ก จะไปเปลี่ยนรูปใหญ่
                 thumb.onclick = (e) => {
                     document.getElementById('booking-img').src = src;
-                    // อัปเดตกรอบสีน้ำเงิน (Active state)
                     Array.from(galleryContainer.children).forEach(c => {
                         c.classList.remove('border-blue-500', 'opacity-100');
                         c.classList.add('border-transparent', 'opacity-60');
@@ -779,30 +855,42 @@
                 };
                 galleryContainer.appendChild(thumb);
             });
-            // ------------------------
 
-            // จำลองวันที่จอง (พรุ่งนี้ - มะรืนนี้)
-            const dateIn = new Date(); dateIn.setDate(dateIn.getDate() + 1);
-            const dateOut = new Date(dateIn); dateOut.setDate(dateOut.getDate() + 2);
-            document.getElementById('booking-date-in').innerText = dateIn.toLocaleDateString('th-TH');
-            document.getElementById('booking-date-out').innerText = dateOut.toLocaleDateString('th-TH');
+            // ตั้งค่าวันที่เริ่มต้นตอนเปิดหน้าต่าง (เข้าพักวันพรุ่งนี้ ออกวันมะรืนนี้)
+            const today = new Date();
+            const defaultDateIn = new Date(today); defaultDateIn.setDate(today.getDate() + 1);
+            const defaultDateOut = new Date(defaultDateIn); defaultDateOut.setDate(defaultDateIn.getDate() + 1);
 
-            const nights = 2;
-            bookingTotalPrice = currentBookingHotel.price * nights;
-            document.getElementById('booking-total').innerText = `฿${bookingTotalPrice.toLocaleString()}`;
+            const inputIn = document.getElementById('booking-date-in');
+            const inputOut = document.getElementById('booking-date-out');
+
+            // ป้องกันไม่ให้เลือกวันที่ย้อนหลัง
+            inputIn.min = formatDateForInput(today);
+            
+            // เซ็ตค่าเริ่มต้น
+            inputIn.value = formatDateForInput(defaultDateIn);
+            inputOut.value = formatDateForInput(defaultDateOut);
+
+            // คำนวณราคาครั้งแรกสุด
+            calculateBookingPrice();
 
             document.getElementById('booking-modal').classList.add('active');
         }
 
         async function confirmBooking() {
-            // ชื่อคีย์ตรงนี้จะตรงกับที่ e.parameter.ชื่อตัวแปร ของ Apps Script ต้องการ
+            // อ่านค่าแบบ Date Locale Format เพื่อให้แสดงในชีตสวยๆ (วัน/เดือน/ปี)
+            const checkinVal = document.getElementById('booking-date-in').value;
+            const checkoutVal = document.getElementById('booking-date-out').value;
+            const checkinDisplay = new Date(checkinVal).toLocaleDateString('th-TH');
+            const checkoutDisplay = new Date(checkoutVal).toLocaleDateString('th-TH');
+
             const payload = {
                 action: 'book',
                 user_name: currentUser.name,
                 user_email: currentUser.email,
                 hotel_name: currentBookingHotel.name,
-                checkin: document.getElementById('booking-date-in').innerText,
-                checkout: document.getElementById('booking-date-out').innerText,
+                checkin: checkinDisplay,
+                checkout: checkoutDisplay,
                 total_price: bookingTotalPrice
             };
 
