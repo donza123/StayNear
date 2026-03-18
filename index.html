@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayNear - ระบบจองที่พักออนไลน์</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- AOS Animation CSS & JS -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-hover: #1e40af;
+            --secondary: #f3f4f6;
+            --text-main: #1f2937;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f9fafb;
+            color: var(--text-main);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .hover-card-effect { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .hover-card-effect:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.1), 0 15px 15px -5px rgba(0, 0, 0, 0.04);
+            border-color: #bfdbfe;
+        }
+        .hover-card-effect img { transition: transform 0.6s ease; }
+        .hover-card-effect:hover img { transform: scale(1.1); }
+        
+        .btn-animate { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative; overflow: hidden;
+        }
+        .btn-animate:hover { transform: scale(1.02); box-shadow: 0 10px 20px -3px rgba(30, 58, 138, 0.4); }
+        .btn-animate:active { transform: scale(0.96); }
+
+        .modal-overlay {
+            opacity: 0; visibility: hidden; transition: all 0.3s ease-in-out; backdrop-filter: blur(5px);
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            transform: translateY(30px) scale(0.95); opacity: 0; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0) scale(1); opacity: 1; }
+
+        .hero-gradient { background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%); }
+
+        .navbar-scrolled {
+            background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px -1px rgba(0, 0, 0, 0.08); height: 70px !important;
+        }
+
+        .hero-bg {
+            background-attachment: fixed; background-position: center; background-repeat: no-repeat; background-size: cover;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        .skeleton-box {
+            animation: shimmer 2s infinite linear;
+            background: linear-gradient(to right, #f6f7f8 4%, #edeef1 25%, #f6f7f8 36%);
+            background-size: 1000px 100%;
+        }
+
+        .auth-form-hidden { display: none !important; }
+
+        /* Custom Bounce Animation for Login Success */
+        .bounce-in-custom {
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+    </style>
+</head>
+<body class="antialiased flex flex-col min-h-screen">
+
+    <!-- ================= Navbar ================= -->
+    <nav id="navbar" class="fixed w-full z-50 top-0 transition-all duration-500 bg-white/95 backdrop-blur-md shadow-sm h-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+            <div class="flex justify-between h-full items-center">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center cursor-pointer hover:opacity-80 transition-opacity" onclick="window.scrollTo(0,0)">
+                    <div class="bg-blue-900 text-white p-2 rounded-lg mr-2 shadow-md transform transition hover:rotate-12">
+                        <i class="fa-solid fa-bed"></i>
+                    </div>
+                    <span class="font-bold text-2xl text-blue-900 tracking-tight">Stay<span class="text-blue-500">Near</span></span>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#" onclick="window.scrollTo(0,0)" class="text-blue-900 font-semibold transition-colors border-b-2 border-blue-900 pb-1">หน้าแรก</a>
+                    <a href="#hotel-section" class="text-gray-600 hover:text-blue-900 font-medium transition-colors hover:-translate-y-0.5 transform inline-block">ค้นหาที่พัก</a>
+                    <a href="#reviews-section" class="text-gray-600 hover:text-blue-900 font-medium transition-colors hover:-translate-y-0.5 transform inline-block">รีวิว</a>
+                    <a href="#" onclick="openContactModal()" class="text-gray-600 hover:text-blue-900 font-medium transition-colors hover:-translate-y-0.5 transform inline-block">ติดต่อเรา</a>
+                    
+                    <div class="border-l border-gray-300 h-6 mx-2"></div>
+                    
+                    <!-- ส่วนปุ่มเข้าสู่ระบบ (จะซ่อนเมื่อล็อกอินแล้ว) -->
+                    <div id="auth-buttons" class="flex items-center space-x-4">
+                        <button onclick="openAuthModal('login')" class="text-blue-900 font-medium hover:text-blue-700 transition-colors flex items-center group">
+                            <i class="fa-regular fa-user mr-2 group-hover:scale-110 transition-transform"></i> เข้าสู่ระบบ
+                        </button>
+                        <button onclick="openAuthModal('register')" class="bg-blue-900 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-800 transition-all shadow-md btn-animate">
+                            สมัครสมาชิก
+                        </button>
+                    </div>
+
+                    <!-- ส่วนแสดงโปรไฟล์ (จะแสดงเมื่อล็อกอินแล้ว) -->
+                    <div id="user-profile" class="hidden items-center space-x-4">
+                        <button onclick="openProfileModal()" class="flex items-center space-x-2 text-gray-700 hover:text-blue-900 transition-colors group">
+                            <img id="nav-user-avatar" src="" class="w-8 h-8 rounded-full object-cover border-2 border-transparent group-hover:border-blue-500 transition-all shadow-sm" alt="User Avatar">
+                            <span id="nav-user-name" class="font-medium">User</span>
+                        </button>
+                        <button onclick="handleLogout()" class="text-red-500 text-sm hover:underline font-medium ml-2">ออกจากระบบ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ================= Hero Section ================= -->
+    <div class="relative w-full h-[550px] mt-20">
+        <div class="absolute inset-0 hero-bg" style="background-image: url('https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=2070&auto=format&fit=crop');"></div>
+        <div class="absolute inset-0 hero-gradient"></div>
+        
+        <div class="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 drop-shadow-2xl" data-aos="zoom-out" data-aos-duration="1200">
+                ค้นหาที่พักที่ใช่ สำหรับทริปต่อไปของคุณ
+            </h1>
+            <p class="text-lg md:text-xl text-gray-200 mb-8 max-w-2xl drop-shadow-md" data-aos="fade-up" data-aos-delay="300" data-aos-duration="1000">
+                จองโรงแรม โฮมสเตย์ และที่พักอื่นๆ ในราคาที่ดีที่สุด พร้อมสัมผัสประสบการณ์ที่ไม่มีวันลืม
+            </p>
+        </div>
+    </div>
+
+    <!-- ================= Search Bar ================= -->
+    <div class="max-w-5xl mx-auto -mt-10 relative z-10 px-4 w-full" data-aos="fade-up" data-aos-delay="500" data-aos-duration="1000">
+        <div class="bg-white rounded-2xl shadow-[0_15px_50px_-12px_rgb(0,0,0,0.15)] p-3 flex flex-col md:flex-row items-center gap-3 border border-gray-100">
+            <div class="flex-1 w-full flex items-center px-4 py-2 md:border-r border-gray-200 group transition-all">
+                <i class="fa-solid fa-location-dot text-gray-400 mr-3 text-lg group-focus-within:text-blue-600"></i>
+                <div class="w-full relative flex items-center h-full">
+                    <input type="text" id="search-destination" placeholder="" class="w-full outline-none text-[15px] font-medium text-gray-800 bg-transparent relative z-10 h-full py-1" onkeyup="if(event.key === 'Enter') executeSearch()">
+                    <div id="typewriter" class="absolute left-0 text-[15px] font-medium text-gray-400 pointer-events-none z-0 transition-opacity duration-300"></div>
+                </div>
+            </div>
+            
+            <div class="flex-1 w-full flex items-center px-4 py-2 md:border-r border-gray-200 group transition-all">
+                <i class="fa-regular fa-calendar text-gray-400 mr-3 text-lg group-focus-within:text-blue-600"></i>
+                <div class="w-full">
+                    <input type="text" id="search-date" placeholder="เช็คอิน - เช็คเอาท์" class="w-full outline-none text-[15px] font-medium text-gray-800 placeholder-gray-400 bg-transparent py-1" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'">
+                </div>
+            </div>
+            
+            <button id="search-btn" onclick="executeSearch()" class="w-full md:w-auto bg-[#1e3a8a] text-white px-8 py-3.5 rounded-xl font-medium hover:bg-blue-800 transition-all flex items-center justify-center shadow-lg hover:shadow-blue-900/40 btn-animate md:ml-2">
+                <span id="btn-icon" class="mr-2"><i class="fa-solid fa-magnifying-glass"></i></span> 
+                <span id="btn-text">ค้นหา</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= Main Content: Hotel Grid ================= -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full" id="hotel-section">
+        
+        <div class="mb-8 flex justify-between items-end" data-aos="fade-right">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 border-l-4 border-blue-900 pl-3">ที่พักแนะนำสำหรับคุณ</h2>
+                <p id="search-result-text" class="text-gray-500 mt-2 ml-4 text-sm hidden">พบที่พัก <span id="result-count" class="font-bold text-blue-600">0</span> แห่ง</p>
+            </div>
+        </div>
+
+        <div id="hotel-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-h-[400px]">
+            <!-- Skeleton or Data -->
+        </div>
+
+    </main>
+
+    <!-- ================= Reviews Section ================= -->
+    <section id="reviews-section" class="bg-gray-100 py-16 border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12" data-aos="fade-up">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">รีวิวจากผู้ใช้งานจริง</h2>
+                <p class="text-gray-600">ประสบการณ์ดีๆ จากลูกค้าที่จองที่พักผ่าน StayNear</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Review 1 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-2 transition-transform duration-300" data-aos="fade-up" data-aos-delay="100">
+                    <div class="text-yellow-400 text-sm mb-3">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-4 leading-relaxed">"จองง่ายมาก ได้ราคาถูกกว่าที่อื่น พูลวิลล่าที่เชียงใหม่สวยตรงปกเลยค่ะ แอดมินตอบคำถามเร็วมาก ประทับใจสุดๆ"</p>
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-900 font-bold mr-3">ส</div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-900">คุณสมศรี ม.</p>
+                            <p class="text-xs text-gray-500">เข้าพักที่ Mountain Pool Villa</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review 2 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-2 transition-transform duration-300" data-aos="fade-up" data-aos-delay="200">
+                    <div class="text-yellow-400 text-sm mb-3">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-4 leading-relaxed">"ระบบทำงานเร็ว ไม่ซับซ้อน ได้ใบยืนยันการจองทันที ที่พักภูเก็ตวิวดีมาก คุ้มราคา ไว้ทริปหน้าจะใช้บริการอีกครับ"</p>
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-900 font-bold mr-3">พ</div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-900">คุณพงศกร อ.</p>
+                            <p class="text-xs text-gray-500">เข้าพักที่ The Ocean View</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review 3 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:-translate-y-2 transition-transform duration-300" data-aos="fade-up" data-aos-delay="300">
+                    <div class="text-yellow-400 text-sm mb-3">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-4 leading-relaxed">"โฮมสเตย์ที่ชลบุรีน่ารักมาก เจ้าของใจดี ระบบจองของเว็บนี้ก็สะดวก แนะนำเลยค่ะสำหรับคนที่หาที่พักง่ายๆ"</p>
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-900 font-bold mr-3">น</div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-900">คุณนฤมล ท.</p>
+                            <p class="text-xs text-gray-500">เข้าพักที่ บ้านสวนโฮมสเตย์</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= Footer ================= -->
+    <footer class="bg-gray-50 border-t border-gray-200 pt-16 pb-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center md:text-left">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <div class="flex items-center">
+                    <div class="bg-blue-900 text-white p-1.5 rounded-lg mr-2">
+                        <i class="fa-solid fa-bed text-sm"></i>
+                    </div>
+                    <span class="font-bold text-xl text-blue-900">Stay<span class="text-blue-500">Near</span></span>
+                </div>
+                <div class="text-sm text-gray-500">
+                    &copy; 2024 StayNear สงวนลิขสิทธิ์
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ================= Login Success Animation Overlay ================= -->
+    <div id="login-success-overlay" class="fixed inset-0 z-[999] bg-white/95 backdrop-blur-md flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500">
+        <div id="login-success-content" class="text-center transform scale-50 opacity-0 bounce-in-custom">
+            <!-- Animated Bed Icon -->
+            <div class="bg-blue-900 text-white w-24 h-24 mx-auto rounded-3xl mb-6 shadow-[0_10px_40px_-10px_rgba(30,58,138,0.5)] flex items-center justify-center transform hover:rotate-12 transition-transform animate-bounce">
+                <i class="fa-solid fa-bed text-5xl"></i>
+            </div>
+            <!-- StayNear Text -->
+            <h1 class="text-5xl font-bold text-blue-900 mb-3 tracking-tight">Stay<span class="text-blue-500">Near</span></h1>
+            <!-- Welcome Message -->
+            <p id="login-success-msg" class="text-xl text-gray-600 font-medium">ยินดีต้อนรับกลับมา</p>
+            <!-- Tiny Loading Spinner -->
+            <div class="mt-8 flex justify-center">
+                <div class="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODALS AREA ================= -->
+
+    <!-- 1. Modal เข้าสู่ระบบ / สมัครสมาชิก -->
+    <div id="auth-modal" class="fixed inset-0 z-[100] flex items-center justify-center modal-overlay bg-black/60">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 overflow-hidden modal-content flex flex-col md:flex-row h-auto min-h-[500px]">
+            <div class="hidden md:flex flex-col justify-center items-center w-1/2 bg-[#0f172a] text-white p-8 relative">
+                <div class="absolute inset-0 opacity-20" style="background-image: url('https://images.unsplash.com/photo-1542314831-c53cd4185e10?q=80&w=1000'); background-size: cover; background-position: center;"></div>
+                <div class="relative z-10 text-center">
+                    <h2 class="text-4xl font-bold mb-2">StayNear</h2>
+                    <p class="text-gray-300">เริ่มต้นการเดินทางที่น่าประทับใจไปกับเรา</p>
+                </div>
+            </div>
+            
+            <div class="w-full md:w-1/2 p-8 relative flex flex-col justify-center bg-[#f8fafc] max-h-[90vh] overflow-y-auto">
+                <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                
+                <!-- ฟอร์มเข้าสู่ระบบ -->
+                <div id="login-form-container">
+                    <h3 class="text-2xl font-bold text-blue-900 mb-2">เข้าสู่ระบบ</h3>
+                    <p class="text-gray-500 text-sm mb-6">ยินดีต้อนรับกลับมา! กรุณากรอกข้อมูลของคุณ</p>
+                    
+                    <form onsubmit="handleLogin(event)" class="space-y-4">
+                        <div class="relative group">
+                            <i class="fa-regular fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500"></i>
+                            <input type="email" id="login-email" required placeholder="อีเมลของคุณ" class="w-full bg-white border border-gray-300 text-gray-900 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="relative group">
+                            <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500"></i>
+                            <input type="password" id="login-password" required placeholder="รหัสผ่าน" class="w-full bg-white border border-gray-300 text-gray-900 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <button type="submit" id="btn-login-submit" class="w-full bg-[#334155] text-white py-3 rounded-lg font-medium hover:bg-[#1e293b] transition-all shadow-md mt-4 btn-animate">เข้าสู่ระบบ</button>
+                    </form>
+                    <p class="text-center text-sm text-gray-600 mt-6">ยังไม่มีบัญชีใช่หรือไม่? <a href="#" onclick="toggleAuthForm('register')" class="text-blue-800 font-bold hover:underline">สมัครสมาชิก</a></p>
+                </div>
+
+                <!-- ฟอร์มสมัครสมาชิก (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+                <div id="register-form-container" class="auth-form-hidden">
+                    <h3 class="text-2xl font-bold text-blue-900 mb-2">สมัครสมาชิก</h3>
+                    <p class="text-gray-500 text-sm mb-6">สร้างบัญชีใหม่เพื่อเริ่มจองที่พัก</p>
+                    
+                    <form onsubmit="handleRegister(event)" class="space-y-4">
+                        <div class="relative group">
+                            <i class="fa-regular fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500"></i>
+                            <input type="text" id="reg-name" required placeholder="ชื่อ - นามสกุล" class="w-full bg-white border border-gray-300 text-gray-900 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="relative group">
+                            <i class="fa-regular fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500"></i>
+                            <input type="email" id="reg-email" required placeholder="อีเมลของคุณ" class="w-full bg-white border border-gray-300 text-gray-900 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="relative group">
+                            <i class="fa-solid fa-phone absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500"></i>
+                            <input type="tel" id="reg-phone" required placeholder="เบอร์โทรศัพท์" class="w-full bg-white border border-gray-300 text-gray-900 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="relative group">
+                            <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500"></i>
+                            <input type="password" id="reg-password" required placeholder="ตั้งรหัสผ่าน" class="w-full bg-white border border-gray-300 text-gray-900 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <button type="submit" id="btn-reg-submit" class="w-full bg-blue-700 text-white py-3 rounded-lg font-medium hover:bg-blue-800 transition-all shadow-md mt-4 btn-animate">ยืนยันสมัครสมาชิก</button>
+                    </form>
+                    <p class="text-center text-sm text-gray-600 mt-6">มีบัญชีอยู่แล้ว? <a href="#" onclick="toggleAuthForm('login')" class="text-blue-800 font-bold hover:underline">เข้าสู่ระบบ</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Modal ติดต่อเรา -->
+    <div id="contact-modal" class="fixed inset-0 z-[110] flex items-center justify-center modal-overlay bg-black/60">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden modal-content relative p-8">
+            <button onclick="closeContactModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-bold text-[#1e3a8a] mb-2"><i class="fa-regular fa-paper-plane mr-2"></i>ติดต่อเรา</h2>
+            <p class="text-gray-500 text-sm mb-6">มีข้อสงสัยหรือต้องการความช่วยเหลือ ส่งข้อความหาเราได้เลย</p>
+            
+            <form onsubmit="handleContact(event)" class="space-y-4">
+                <input type="text" id="contact-name" required placeholder="ชื่อของคุณ" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="email" id="contact-email" required placeholder="อีเมลของคุณ" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="contact-subject" required placeholder="หัวข้อ" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                <textarea id="contact-message" required placeholder="ข้อความ..." rows="4" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
+                <button type="submit" id="btn-contact-submit" class="w-full bg-[#1e3a8a] text-white py-3 rounded-xl font-bold hover:bg-blue-800 transition-all shadow-md btn-animate">ส่งข้อความ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Modal สรุปการจอง -->
+    <div id="booking-modal" class="fixed inset-0 z-[110] flex items-center justify-center modal-overlay bg-black/60">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 overflow-hidden modal-content flex flex-col md:flex-row max-h-[95vh]">
+            
+            <div class="w-full md:w-5/12 flex flex-col bg-gray-50" id="booking-img-container">
+                <!-- รูปภาพหลัก -->
+                <div class="relative h-56 md:h-64 flex-shrink-0">
+                    <img src="" id="booking-img" class="w-full h-full object-cover transition-all duration-300" alt="Hotel">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
+                    <div class="absolute bottom-4 left-4 right-4 pointer-events-none">
+                        <span id="booking-type" class="bg-white/20 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full mb-2 inline-block border border-white/30">โรงแรม</span>
+                        <h3 id="booking-hotel-name" class="text-white font-bold text-xl md:text-2xl mb-1 leading-tight drop-shadow-md">Name</h3>
+                    </div>
+                </div>
+                <!-- รูปภาพแกลลอรี่ (Thumbnails) -->
+                <div class="p-4 flex gap-3 overflow-x-auto flex-grow items-start" id="booking-gallery" style="scrollbar-width: thin;">
+                    <!-- Thumbnails จะถูกแทรกอัตโนมัติด้วย JavaScript -->
+                </div>
+            </div>
+
+            <div class="w-full md:w-7/12 p-6 md:p-8 relative overflow-y-auto">
+                <button onclick="closeBookingModal()" class="absolute top-4 right-4 bg-gray-100 text-gray-500 hover:text-gray-800 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+
+                <h2 class="text-2xl font-bold text-[#1e3a8a] mb-1">สรุปการจองที่พัก</h2>
+                <p id="booking-user-info" class="text-gray-500 text-sm mb-6 pb-4 border-b border-gray-100">กรุณาเข้าสู่ระบบก่อนทำการจอง</p>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-[#f8fafc] p-4 rounded-xl border border-gray-100">
+                        <p class="text-xs text-gray-500 mb-1">เช็คอิน</p>
+                        <p class="font-bold text-[#1e3a8a] flex items-center"><i class="fa-regular fa-calendar text-blue-500 mr-2"></i> <span id="booking-date-in">ระบุวันที่</span></p>
+                    </div>
+                    <div class="bg-[#f8fafc] p-4 rounded-xl border border-gray-100">
+                        <p class="text-xs text-gray-500 mb-1">เช็คเอาท์</p>
+                        <p class="font-bold text-[#1e3a8a] flex items-center"><i class="fa-regular fa-calendar text-blue-500 mr-2"></i> <span id="booking-date-out">ระบุวันที่</span></p>
+                    </div>
+                </div>
+
+                <div class="bg-[#f8fafc] p-5 rounded-xl border border-gray-100 mb-6">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-gray-600">ยอดชำระสุทธิ</span>
+                        <span id="booking-total" class="text-2xl font-bold text-[#0284c7]">฿0</span>
+                    </div>
+                </div>
+
+                <button id="btn-confirm-booking" onclick="confirmBooking()" class="w-full bg-[#1e3a8a] text-white py-4 rounded-xl font-bold hover:bg-blue-800 transition-all shadow-lg btn-animate flex justify-center items-center text-lg">
+                    <i class="fa-regular fa-credit-card mr-2"></i> ยืนยันและชำระเงิน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Modal จัดการโปรไฟล์ส่วนตัว -->
+    <div id="profile-modal" class="fixed inset-0 z-[120] flex items-center justify-center modal-overlay bg-black/60">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden modal-content relative p-8">
+            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-bold text-[#1e3a8a] mb-6 text-center">โปรไฟล์ส่วนตัว</h2>
+            
+            <form onsubmit="handleUpdateProfile(event)">
+                <!-- อัปโหลดรูปภาพ -->
+                <div class="flex flex-col items-center mb-6">
+                    <div class="relative group cursor-pointer" onclick="document.getElementById('profile-upload').click()">
+                        <img id="profile-preview" src="" class="w-24 h-24 rounded-full object-cover border-4 border-gray-100 shadow-sm transition-opacity group-hover:opacity-75" alt="Profile Picture">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div class="bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-camera"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="profile-upload" class="hidden" accept="image/*" onchange="previewProfileImage(event)">
+                    <span class="text-xs text-gray-500 mt-2">คลิกที่รูปเพื่อเปลี่ยน</span>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block font-medium">ชื่อ - นามสกุล</label>
+                        <input type="text" id="profile-name" required class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block font-medium">อีเมล <span class="text-gray-400">(ไม่สามารถแก้ไขได้)</span></label>
+                        <input type="email" id="profile-email" readonly class="w-full bg-gray-100 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-500 outline-none cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block font-medium">เบอร์โทรศัพท์</label>
+                        <input type="tel" id="profile-phone" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-profile-submit" class="w-full bg-[#1e3a8a] text-white py-3 rounded-xl font-bold hover:bg-blue-800 transition-all shadow-md btn-animate mt-8">
+                    บันทึกข้อมูล
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- ================= JAVASCRIPT ================= -->
+    <script>
+        // ใส่ URL Web App ของคุณที่นี่
+        const API_URL = "https://script.google.com/macros/s/AKfycbxjbLmwaSOT5wbT1bL21uVx8cvFcnlNwMGA6GizeTA3m-Av_N12_5l6hLevck8e33c/exec";
+        
+        let hotelData = []; 
+        let currentUser = null;
+        
+        // ข้อมูลจำลองเผื่อว่ายังไม่ได้ดึงจาก Sheet
+        const fallbackHotelData = [
+            { id: 1, name: "The Ocean View Resort", location: "ภูเก็ต", price: 1850, img: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=800", type: "โรงแรม", gallery: ["https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=800", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800", "https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800"] },
+            { id: 2, name: "บ้านสวนโฮมสเตย์ ริมเล", location: "ชลบุรี", price: 650, img: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=800", type: "โฮมสเตย์", gallery: ["https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=800", "https://images.unsplash.com/photo-1522771731478-44eb939faa37?q=80&w=800"] },
+            { id: 3, name: "City Center Loft", location: "กรุงเทพมหานคร", price: 1200, img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800", type: "อพาร์ตเมนต์", gallery: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800", "https://images.unsplash.com/photo-1502672260266-1c1f5309623e?q=80&w=800", "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800"] },
+            { id: 4, name: "Mountain Pool Villa", location: "เชียงใหม่", price: 3200, img: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=800", type: "พูลวิลล่า", gallery: ["https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=800", "https://images.unsplash.com/photo-1574362848149-11496d93a7c7?q=80&w=800", "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=800"] }
+        ];
+
+        // ตรวจสอบการล็อกอิน และจัดการข้อมูลโปรไฟล์แสดงผล
+        function checkAuthState() {
+            const userStr = localStorage.getItem('staynear_user');
+            if (userStr) {
+                currentUser = JSON.parse(userStr);
+                document.getElementById('auth-buttons').classList.add('hidden');
+                document.getElementById('user-profile').classList.remove('hidden');
+                document.getElementById('user-profile').classList.add('flex');
+                
+                // อัปเดตชื่อใน Navbar
+                document.getElementById('nav-user-name').innerText = currentUser.name;
+                
+                // อัปเดต Avatar ใน Navbar (สร้างรูปย่อชื่อ หากไม่มีรูปโปรไฟล์)
+                const avatarUrl = currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=1e3a8a&color=fff`;
+                document.getElementById('nav-user-avatar').src = avatarUrl;
+                
+                // ใส่ข้อมูลในหน้าติดต่อเราให้อัตโนมัติ
+                document.getElementById('contact-name').value = currentUser.name;
+                document.getElementById('contact-email').value = currentUser.email;
+            } else {
+                currentUser = null;
+                document.getElementById('auth-buttons').classList.remove('hidden');
+                document.getElementById('user-profile').classList.add('hidden');
+                document.getElementById('user-profile').classList.remove('flex');
+            }
+        }
+
+        // ==========================================
+        // ฟังก์ชันจัดการโปรไฟล์ (Profile Update)
+        // ==========================================
+        function openProfileModal() {
+            if(!currentUser) return;
+            // ดึงข้อมูลปัจจุบันมาแสดงในฟอร์ม
+            document.getElementById('profile-name').value = currentUser.name || '';
+            document.getElementById('profile-email').value = currentUser.email || '';
+            document.getElementById('profile-phone').value = currentUser.phone || '';
+            
+            // แสดงรูปภาพโปรไฟล์ปัจจุบัน
+            const avatarUrl = currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=1e3a8a&color=fff`;
+            document.getElementById('profile-preview').src = avatarUrl;
+            
+            // ล้างค่า dataset รูปภาพสำรองไว้
+            document.getElementById('profile-preview').dataset.base64 = '';
+            
+            document.getElementById('profile-modal').classList.add('active');
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profile-modal').classList.remove('active');
+            document.getElementById('profile-upload').value = ''; // Reset input file
+        }
+
+        function previewProfileImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const result = e.target.result;
+                    document.getElementById('profile-preview').src = result;
+                    // เก็บข้อมูล Base64 ไว้เตรียมเซฟ
+                    document.getElementById('profile-preview').dataset.base64 = result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleUpdateProfile(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btn-profile-submit');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+            btn.disabled = true;
+
+            // จำลองการอัปเดต โดยบันทึกลง LocalStorage
+            setTimeout(() => {
+                const newName = document.getElementById('profile-name').value;
+                const newPhone = document.getElementById('profile-phone').value;
+                const newAvatar = document.getElementById('profile-preview').dataset.base64;
+
+                currentUser.name = newName;
+                currentUser.phone = newPhone;
+                if(newAvatar) currentUser.avatar = newAvatar; // หากมีการอัปโหลดใหม่ ให้ทับของเดิม
+                
+                localStorage.setItem('staynear_user', JSON.stringify(currentUser));
+                
+                checkAuthState(); // รีเฟรชข้อมูลใน Navbar
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                closeProfileModal();
+                
+                Swal.fire({ icon: 'success', title: 'อัปเดตโปรไฟล์สำเร็จ!', showConfirmButton: false, timer: 1500 });
+            }, 800);
+        }
+
+        // ==========================================
+        // ฟังก์ชันหลักที่สื่อสารกับ Apps Script (แก้ไขเป็น URLSearchParams)
+        // ==========================================
+        async function sendToAPI(payload, buttonId) {
+            const btn = document.getElementById(buttonId);
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังประมวลผล...';
+            btn.disabled = true;
+
+            try {
+                // แปลงข้อมูลเป็น Form Data เพื่อให้ Apps Script รับผ่าน e.parameter ได้
+                const formData = new URLSearchParams();
+                for (const key in payload) {
+                    formData.append(key, payload[key]);
+                }
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData // ส่งแบบ Form
+                });
+                
+                const result = await response.json();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return result;
+
+            } catch (error) {
+                console.error("API Error:", error);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' });
+                return { status: "error" };
+            }
+        }
+
+        // สมัครสมาชิก
+        async function handleRegister(e) {
+            e.preventDefault();
+            const payload = {
+                action: 'register',
+                name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                phone: document.getElementById('reg-phone').value,
+                password: document.getElementById('reg-password').value
+            };
+
+            const res = await sendToAPI(payload, 'btn-reg-submit');
+            if(res && res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'สมัครสมาชิกสำเร็จ!', text: 'กรุณาเข้าสู่ระบบ', confirmButtonColor: '#1e3a8a' });
+                toggleAuthForm('login');
+                document.getElementById('login-email').value = payload.email; 
+            } else if (res) {
+                Swal.fire({ icon: 'error', title: 'สมัครไม่สำเร็จ', text: res.message });
+            }
+        }
+
+        // ==========================================
+        // เข้าสู่ระบบ & แอนิเมชันต้อนรับ
+        // ==========================================
+        function showLoginSuccessAnimation(userName) {
+            const overlay = document.getElementById('login-success-overlay');
+            const content = document.getElementById('login-success-content');
+            const msg = document.getElementById('login-success-msg');
+            
+            // ตั้งค่าข้อความต้อนรับ
+            msg.innerText = `ยินดีต้อนรับ, ${userName}`;
+            
+            // แสดง Overlay ทันที
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            overlay.classList.add('opacity-100');
+            
+            // เด้งโลโก้ขึ้นมา
+            setTimeout(() => {
+                content.classList.remove('scale-50', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 50);
+
+            // ซ่อนหน้าต่างแอนิเมชั่นหลังจากผ่านไป 2.5 วินาที
+            setTimeout(() => {
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-50', 'opacity-0');
+            }, 2500);
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const payload = {
+                action: 'login',
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-password').value
+            };
+
+            const res = await sendToAPI(payload, 'btn-login-submit');
+            if(res && res.status === 'success') {
+                // เก็บข้อมูลผู้ใช้ที่ Apps Script ส่งกลับมา
+                const userData = { name: res.name, email: res.email, phone: '', avatar: '' }; 
+                localStorage.setItem('staynear_user', JSON.stringify(userData));
+                checkAuthState();
+                closeAuthModal();
+                
+                // เรียกใช้แอนิเมชั่นโลโก้ต้อนรับ แทน SweetAlert
+                showLoginSuccessAnimation(res.name);
+                
+            } else if (res) {
+                Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบล้มเหลว', text: res.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('staynear_user');
+            checkAuthState();
+            Swal.fire({ icon: 'info', title: 'ออกจากระบบแล้ว', timer: 1500, showConfirmButton: false });
+        }
+
+        // ติดต่อเรา
+        async function handleContact(e) {
+            e.preventDefault();
+            const payload = {
+                action: 'contact',
+                name: document.getElementById('contact-name').value,
+                email: document.getElementById('contact-email').value,
+                subject: document.getElementById('contact-subject').value,
+                message: document.getElementById('contact-message').value
+            };
+
+            const res = await sendToAPI(payload, 'btn-contact-submit');
+            if(res && res.status === 'success') {
+                closeContactModal();
+                Swal.fire({ icon: 'success', title: 'ส่งข้อความสำเร็จ', text: res.message, confirmButtonColor: '#1e3a8a' });
+                document.getElementById('contact-subject').value = '';
+                document.getElementById('contact-message').value = '';
+            } else if(res) {
+                Swal.fire({ icon: 'error', title: 'ส่งข้อความไม่สำเร็จ', text: res.message });
+            }
+        }
+
+        // ระบบจอง
+        let currentBookingHotel = null;
+        let bookingTotalPrice = 0;
+
+        function openBookingModal(hotelId) {
+            if(!currentUser) {
+                Swal.fire({ icon: 'warning', title: 'กรุณาเข้าสู่ระบบ', text: 'ต้องเข้าสู่ระบบก่อนทำการจองที่พัก', confirmButtonColor: '#1e3a8a' });
+                openAuthModal('login');
+                return;
+            }
+
+            currentBookingHotel = hotelData.find(h => h.id === hotelId);
+            if(!currentBookingHotel) return;
+
+            document.getElementById('booking-img').src = currentBookingHotel.img;
+            document.getElementById('booking-hotel-name').innerText = currentBookingHotel.name;
+            document.getElementById('booking-type').innerText = currentBookingHotel.type;
+            document.getElementById('booking-user-info').innerHTML = `ผู้ทำรายการ: <b>${currentUser.name}</b> (${currentUser.email})`;
+            
+            // --- สร้างแกลลอรี่ภาพพัก ---
+            const galleryContainer = document.getElementById('booking-gallery');
+            galleryContainer.innerHTML = ''; // ล้างแกลลอรี่เดิมทิ้ง
+            
+            // ดึงรูปแกลลอรี่ (ถ้าใน API ไม่มี จะสุ่มภาพมุมห้องต่างๆ เข้าไปให้แทน)
+            const images = currentBookingHotel.gallery && currentBookingHotel.gallery.length > 0 
+                ? currentBookingHotel.gallery 
+                : [
+                    currentBookingHotel.img, 
+                    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800", // ห้องนอน
+                    "https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800", // เตียง
+                    "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800"  // ห้องน้ำ
+                ];
+
+            // สร้างรูปเล็กๆ (Thumbnails)
+            images.forEach((src, idx) => {
+                const thumb = document.createElement('img');
+                thumb.src = src;
+                thumb.className = `w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg cursor-pointer border-2 transition-all hover:opacity-100 flex-shrink-0 ${idx === 0 ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60'}`;
+                
+                // เมื่อคลิกที่รูปเล็ก จะไปเปลี่ยนรูปใหญ่
+                thumb.onclick = (e) => {
+                    document.getElementById('booking-img').src = src;
+                    // อัปเดตกรอบสีน้ำเงิน (Active state)
+                    Array.from(galleryContainer.children).forEach(c => {
+                        c.classList.remove('border-blue-500', 'opacity-100');
+                        c.classList.add('border-transparent', 'opacity-60');
+                    });
+                    e.target.classList.remove('border-transparent', 'opacity-60');
+                    e.target.classList.add('border-blue-500', 'opacity-100');
+                };
+                galleryContainer.appendChild(thumb);
+            });
+            // ------------------------
+
+            // จำลองวันที่จอง (พรุ่งนี้ - มะรืนนี้)
+            const dateIn = new Date(); dateIn.setDate(dateIn.getDate() + 1);
+            const dateOut = new Date(dateIn); dateOut.setDate(dateOut.getDate() + 2);
+            document.getElementById('booking-date-in').innerText = dateIn.toLocaleDateString('th-TH');
+            document.getElementById('booking-date-out').innerText = dateOut.toLocaleDateString('th-TH');
+
+            const nights = 2;
+            bookingTotalPrice = currentBookingHotel.price * nights;
+            document.getElementById('booking-total').innerText = `฿${bookingTotalPrice.toLocaleString()}`;
+
+            document.getElementById('booking-modal').classList.add('active');
+        }
+
+        async function confirmBooking() {
+            // ชื่อคีย์ตรงนี้จะตรงกับที่ e.parameter.ชื่อตัวแปร ของ Apps Script ต้องการ
+            const payload = {
+                action: 'book',
+                user_name: currentUser.name,
+                user_email: currentUser.email,
+                hotel_name: currentBookingHotel.name,
+                checkin: document.getElementById('booking-date-in').innerText,
+                checkout: document.getElementById('booking-date-out').innerText,
+                total_price: bookingTotalPrice
+            };
+
+            const res = await sendToAPI(payload, 'btn-confirm-booking');
+            if(res && res.status === 'success') {
+                closeBookingModal();
+                Swal.fire({
+                    icon: 'success', title: 'จองสำเร็จ!', 
+                    text: res.message,
+                    confirmButtonColor: '#1e3a8a'
+                });
+            } else if(res) {
+                Swal.fire({ icon: 'error', title: 'จองไม่สำเร็จ', text: res.message });
+            }
+        }
+
+        // ==========================================
+        // UI & Components
+        // ==========================================
+        function toggleAuthForm(type) {
+            if(type === 'login') {
+                document.getElementById('login-form-container').classList.remove('auth-form-hidden');
+                document.getElementById('register-form-container').classList.add('auth-form-hidden');
+            } else {
+                document.getElementById('login-form-container').classList.add('auth-form-hidden');
+                document.getElementById('register-form-container').classList.remove('auth-form-hidden');
+            }
+        }
+
+        function openAuthModal(type) { toggleAuthForm(type); document.getElementById('auth-modal').classList.add('active'); }
+        function closeAuthModal() { document.getElementById('auth-modal').classList.remove('active'); }
+        function openContactModal() { document.getElementById('contact-modal').classList.add('active'); }
+        function closeContactModal() { document.getElementById('contact-modal').classList.remove('active'); }
+        function closeBookingModal() { document.getElementById('booking-modal').classList.remove('active'); }
+
+        async function fetchHotelData() {
+            renderSkeleton();
+            try {
+                const response = await fetch(API_URL + "?action=getHotels");
+                if(response.ok) {
+                    const data = await response.json();
+                    hotelData = Array.isArray(data) && data.length > 0 ? data : fallbackHotelData;
+                } else {
+                    hotelData = fallbackHotelData;
+                }
+            } catch (error) {
+                hotelData = fallbackHotelData;
+            }
+            renderHotels(hotelData);
+        }
+
+        function renderSkeleton() {
+            const grid = document.getElementById('hotel-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                grid.innerHTML += `<div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm"><div class="skeleton-box h-48 w-full"></div><div class="p-5"><div class="skeleton-box h-5 w-3/4 rounded mb-3"></div><div class="skeleton-box h-4 w-1/2 rounded mb-6"></div></div></div>`;
+            }
+        }
+
+        function renderHotels(data) {
+            const grid = document.getElementById('hotel-grid');
+            grid.innerHTML = '';
+
+            // ถ้าค้นหาแล้วไม่เจอข้อมูลเลย
+            if (data.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center flex flex-col items-center justify-center bg-white rounded-2xl border-2 border-dashed border-gray-300 transform transition hover:scale-[1.01]" data-aos="zoom-in">
+                        <div class="bg-gray-50 p-6 rounded-full mb-4">
+                            <i class="fa-solid fa-magnifying-glass-location text-5xl text-blue-300"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-700">ไม่พบที่พักที่คุณค้นหา</h3>
+                        <p class="text-gray-500 mt-2">ลองพิมพ์ชื่อจังหวัด เช่น "ภูเก็ต" หรือชื่อที่พัก</p>
+                        <button onclick="document.getElementById('search-destination').value=''; executeSearch();" class="mt-6 text-blue-600 font-medium hover:underline">
+                            แสดงที่พักทั้งหมด
+                        </button>
+                    </div>`;
+                return;
+            }
+
+            data.forEach((hotel, index) => {
+                grid.innerHTML += `
+                    <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 hover-card-effect group cursor-pointer shadow-sm relative" data-aos="fade-up" data-aos-delay="${(index%4)*100}" onclick="openBookingModal(${hotel.id})">
+                        <div class="relative h-48 overflow-hidden">
+                            <img src="${hotel.img}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800'">
+                            <div class="absolute top-3 left-3 bg-white/95 px-3 py-1.5 rounded-full text-xs font-bold text-blue-900 shadow-sm">${hotel.type}</div>
+                        </div>
+                        <div class="p-5 flex flex-col h-[calc(100%-12rem)]">
+                            <h3 class="font-bold text-lg text-gray-900 group-hover:text-blue-700 line-clamp-1">${hotel.name}</h3>
+                            <p class="text-sm text-gray-500 mb-4"><i class="fa-solid fa-location-dot mr-1.5 text-blue-500"></i>${hotel.location}</p>
+                            <div class="mt-auto flex justify-between items-end border-t border-gray-50 pt-4">
+                                <div><span class="text-blue-600 font-bold text-xl">฿${hotel.price.toLocaleString()}</span><span class="text-xs text-gray-400">/ คืน</span></div>
+                                <button class="bg-[#1e3a8a] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-800 transition-all btn-animate">จอง</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            if (typeof AOS !== 'undefined') setTimeout(() => { AOS.refresh(); }, 100);
+        }
+
+        // ==========================================
+        // ระบบค้นหา & ลูกเล่นช่องค้นหา (Typewriter)
+        // ==========================================
+        function executeSearch() {
+            const destInput = document.getElementById('search-destination').value.toLowerCase().trim();
+            const btnIcon = document.getElementById('btn-icon');
+            const btnText = document.getElementById('btn-text');
+            const resultText = document.getElementById('search-result-text');
+            const resultCount = document.getElementById('result-count');
+            
+            // เปลี่ยนปุ่มเป็นสถานะโหลด
+            if (btnIcon) btnIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            if (btnText) btnText.innerText = 'กำลังหา...';
+            
+            renderSkeleton();
+            document.getElementById('hotel-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // จำลองเวลาค้นหานิดนึงให้ดูสมจริง
+            setTimeout(() => {
+                // กรองข้อมูล (ค้นหาจาก ชื่อ, จังหวัด หรือ ชนิดที่พัก)
+                const results = hotelData.filter(hotel => 
+                    hotel.location.toLowerCase().includes(destInput) || 
+                    hotel.name.toLowerCase().includes(destInput) ||
+                    hotel.type.toLowerCase().includes(destInput) ||
+                    destInput === '' 
+                );
+
+                renderHotels(results);
+                
+                // สรุปผลการค้นหา
+                if(destInput !== '') {
+                    if (resultCount) resultCount.innerText = results.length;
+                    if (resultText) resultText.classList.remove('hidden');
+                } else {
+                    if (resultText) resultText.classList.add('hidden');
+                }
+                
+                // คืนสถานะปุ่มกลับมา
+                if (btnIcon) btnIcon.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
+                if (btnText) btnText.innerText = 'ค้นหา';
+                
+            }, 600);
+        }
+
+        // เอฟเฟกต์พิมพ์อัตโนมัติ (Typewriter) ในช่องค้นหา
+        const placeholders = ["ค้นหา ภูเก็ต...", "ค้นหา เชียงใหม่...", "ค้นหา พูลวิลล่า...", "พิมพ์ชื่อที่พัก..."];
+        let placeholderIndex = 0;
+        let charIndex = 0;
+        const typewriterEl = document.getElementById('typewriter');
+        const inputEl = document.getElementById('search-destination');
+
+        function typeWriter() {
+            if(!inputEl || !typewriterEl) return;
+            if(inputEl.value.length > 0) {
+                typewriterEl.innerHTML = "";
+                setTimeout(typeWriter, 1000);
+                return;
+            }
+            const currentText = placeholders[placeholderIndex];
+            if (charIndex < currentText.length) {
+                typewriterEl.innerHTML += currentText.charAt(charIndex);
+                charIndex++;
+                setTimeout(typeWriter, 100);
+            } else {
+                setTimeout(eraseText, 2000);
+            }
+        }
+
+        function eraseText() {
+            if(!inputEl || !typewriterEl) return;
+            if(inputEl.value.length > 0) {
+                typewriterEl.innerHTML = "";
+                setTimeout(typeWriter, 1000);
+                return;
+            }
+            const currentText = placeholders[placeholderIndex];
+            if (charIndex > 0) {
+                typewriterEl.innerHTML = currentText.substring(0, charIndex - 1);
+                charIndex--;
+                setTimeout(eraseText, 50);
+            } else {
+                placeholderIndex = (placeholderIndex + 1) % placeholders.length;
+                setTimeout(typeWriter, 500);
+            }
+        }
+
+        // ซ่อนข้อความพิมพ์อัตโนมัติเวลาผู้ใช้พิมพ์เอง
+        if(inputEl) {
+            inputEl.addEventListener('input', () => {
+                if(inputEl.value.length > 0) {
+                    typewriterEl.style.opacity = '0';
+                } else {
+                    typewriterEl.style.opacity = '1';
+                    typewriterEl.innerHTML = "";
+                    charIndex = 0;
+                }
+            });
+        }
+
+        // เริ่มต้นการทำงานเมื่อโหลดหน้าเสร็จ
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthState();
+            fetchHotelData();
+            
+            // เริ่มเอฟเฟกต์พิมพ์อัตโนมัติ
+            setTimeout(typeWriter, 1000);
+            
+            if (typeof AOS !== 'undefined') AOS.init({ once: true, offset: 50 });
+            
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 20) document.getElementById('navbar').classList.add('navbar-scrolled');
+                else document.getElementById('navbar').classList.remove('navbar-scrolled');
+            });
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeAuthModal(); 
+                closeContactModal(); 
+                closeBookingModal();
+                closeProfileModal(); // เพิ่มปิดโปรไฟล์โมดอล
+            }
+        });
+
+    </script>
+</body>
+</html>
