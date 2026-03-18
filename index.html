@@ -60,7 +60,7 @@
         .btn-animate:active { transform: scale(0.96); }
 
         .modal-overlay {
-            opacity: 0; visibility: hidden; transition: all 0.3s ease-in-out; backdrop-filter: blur(5px);
+            opacity: 0; visibility: hidden; transition: all 0.3s ease-in-out; backdrop-filter: blur(5px); z-index: 100;
         }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         .modal-content {
@@ -129,6 +129,11 @@
                     <a href="#" onclick="openContactModal()" class="text-gray-600 hover:text-blue-900 font-medium transition-colors hover:-translate-y-0.5 transform inline-block">ติดต่อเรา</a>
                     
                     <div class="border-l border-gray-300 h-6 mx-2"></div>
+                    
+                    <!-- ปุ่มสำหรับแอดมิน (แสดงเมื่อล็อกอินเป็น admin) -->
+                    <button id="btn-admin-panel" class="hidden text-orange-600 font-bold hover:text-orange-700 transition-colors flex items-center group" onclick="openAdminModal()">
+                        <i class="fa-solid fa-user-shield mr-1.5 group-hover:scale-110 transition-transform"></i> จัดการระบบ
+                    </button>
                     
                     <!-- ส่วนปุ่มเข้าสู่ระบบ (จะซ่อนเมื่อล็อกอินแล้ว) -->
                     <div id="auth-buttons" class="flex items-center space-x-4">
@@ -497,11 +502,133 @@
         </div>
     </div>
 
+    <!-- 5. Admin Dashboard Modal -->
+    <div id="admin-modal" class="fixed inset-0 z-[130] flex items-center justify-center modal-overlay bg-gray-100">
+        <div class="bg-white w-full h-full md:h-[90vh] md:w-[90vw] md:rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden modal-content">
+            
+            <!-- Admin Sidebar -->
+            <div class="w-full md:w-64 bg-[#0f172a] text-white flex flex-col">
+                <div class="p-6 text-center border-b border-gray-700">
+                    <div class="bg-blue-600 text-white w-12 h-12 mx-auto rounded-lg mb-3 flex items-center justify-center text-xl shadow-lg"><i class="fa-solid fa-bed"></i></div>
+                    <h2 class="text-xl font-bold">Admin Panel</h2>
+                    <p class="text-xs text-gray-400 mt-1">StayNear Management</p>
+                </div>
+                <div class="flex flex-row md:flex-col p-4 gap-2 overflow-x-auto md:overflow-visible">
+                    <button onclick="switchAdminTab('hotels')" id="tab-hotels" class="admin-tab active bg-blue-600 text-left px-4 py-3 rounded-lg flex items-center gap-3 w-full transition shrink-0"><i class="fa-solid fa-hotel w-5"></i> จัดการที่พัก</button>
+                    <button onclick="switchAdminTab('bookings')" id="tab-bookings" class="admin-tab hover:bg-gray-800 text-left px-4 py-3 rounded-lg flex items-center gap-3 w-full transition shrink-0"><i class="fa-solid fa-calendar-check w-5"></i> จัดการการจอง</button>
+                    <button onclick="switchAdminTab('contacts')" id="tab-contacts" class="admin-tab hover:bg-gray-800 text-left px-4 py-3 rounded-lg flex items-center gap-3 w-full transition shrink-0"><i class="fa-solid fa-envelope w-5"></i> ข้อความติดต่อ</button>
+                </div>
+                <div class="mt-auto p-4 hidden md:block">
+                    <button onclick="closeAdminModal()" class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition font-medium flex items-center justify-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> ออกจากแอดมิน</button>
+                </div>
+            </div>
+            
+            <!-- Admin Content Area -->
+            <div class="flex-1 bg-gray-50 flex flex-col overflow-hidden relative">
+                <!-- Header (Mobile Close Button) -->
+                <div class="md:hidden p-4 bg-white border-b flex justify-end">
+                    <button onclick="closeAdminModal()" class="text-red-500 font-bold"><i class="fa-solid fa-xmark mr-1"></i> ปิดแอดมิน</button>
+                </div>
+
+                <!-- Tab 1: Hotels View -->
+                <div id="admin-view-hotels" class="admin-view p-4 md:p-8 overflow-y-auto h-full">
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+                        <h3 class="text-2xl font-bold text-gray-800">รายชื่อที่พักในระบบ</h3>
+                        <button onclick="document.getElementById('admin-add-hotel-modal').classList.remove('hidden')" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition shadow-sm font-medium"><i class="fa-solid fa-plus mr-2"></i> เพิ่มที่พักใหม่</button>
+                    </div>
+                    <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
+                                    <th class="p-4 font-semibold">ID</th>
+                                    <th class="p-4 font-semibold">รูปภาพ</th>
+                                    <th class="p-4 font-semibold">ชื่อที่พัก</th>
+                                    <th class="p-4 font-semibold">จังหวัด</th>
+                                    <th class="p-4 font-semibold">ชนิด</th>
+                                    <th class="p-4 font-semibold">ราคา/คืน</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-hotels-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Bookings View -->
+                <div id="admin-view-bookings" class="admin-view p-4 md:p-8 overflow-y-auto h-full hidden">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">รายการจองที่พักล่าสุด</h3>
+                    <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
+                        <table class="w-full text-left border-collapse min-w-[900px]">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
+                                    <th class="p-4 font-semibold">ผู้จอง</th>
+                                    <th class="p-4 font-semibold">ที่พัก</th>
+                                    <th class="p-4 font-semibold">เช็คอิน</th>
+                                    <th class="p-4 font-semibold">เช็คเอาท์</th>
+                                    <th class="p-4 font-semibold">ยอดชำระ</th>
+                                    <th class="p-4 font-semibold">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-bookings-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Contacts View -->
+                <div id="admin-view-contacts" class="admin-view p-4 md:p-8 overflow-y-auto h-full hidden">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">ข้อความจากลูกค้า</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="admin-contacts-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal เพิ่มที่พัก (ส่วนของแอดมิน) -->
+    <div id="admin-add-hotel-modal" class="fixed inset-0 z-[140] flex items-center justify-center bg-black/60 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 md:p-8 relative">
+            <button onclick="document.getElementById('admin-add-hotel-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">เพิ่มที่พักใหม่</h2>
+            <form onsubmit="adminSubmitAddHotel(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อที่พัก</label>
+                    <input type="text" id="admin-add-name" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                        <input type="text" id="admin-add-location" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ชนิดที่พัก</label>
+                        <select id="admin-add-type" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="โรงแรม">โรงแรม</option>
+                            <option value="โฮมสเตย์">โฮมสเตย์</option>
+                            <option value="พูลวิลล่า">พูลวิลล่า</option>
+                            <option value="อพาร์ตเมนต์">อพาร์ตเมนต์</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ราคาต่อคืน (บาท)</label>
+                    <input type="number" id="admin-add-price" required min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ลิงก์รูปภาพ (URL)</label>
+                    <input type="url" id="admin-add-img" required placeholder="https://images.unsplash.com/..." class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="pt-4">
+                    <button type="submit" id="btn-admin-add-hotel" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition shadow">บันทึกข้อมูลที่พัก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <!-- ================= JAVASCRIPT ================= -->
     <script>
         // ใส่ URL Web App ของคุณที่นี่
-        const API_URL = "https://script.google.com/macros/s/AKfycbzqISv50n2m-2WHjh4jyB7ftgFWO6_y1fBcbYymgJJGgLHDAZtRAzPSJB1ObNUebde3/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwb7uchgo-9aqCutmRnNk_Tk5M7-_Qj3VmunmGlILJrk7_f1KkdZBJ_DgjJoqBZuObO/exec";
         
         let hotelData = []; 
         let currentUser = null;
@@ -514,7 +641,17 @@
             { id: 4, name: "Mountain Pool Villa", location: "เชียงใหม่", price: 3200, img: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=800", type: "พูลวิลล่า", gallery: ["https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=800", "https://images.unsplash.com/photo-1574362848149-11496d93a7c7?q=80&w=800", "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=800"] }
         ];
 
-        // ตรวจสอบการล็อกอิน และจัดการข้อมูลโปรไฟล์แสดงผล
+        // ข้อมูลจำลองสำหรับแอดมิน (ถ้า API ไม่พร้อม)
+        let mockAdminBookings = [
+            { id: 1, user_name: "ณัฐวุฒิ วงศ์อริยะศักดิ์", user_email: "nattawutsc22@gmail.com", hotel_name: "The Ocean View Resort", checkin: "17/03/2026", checkout: "19/03/2026", total_price: 3959 },
+            { id: 2, user_name: "สมศรี ใจดี", user_email: "somsri@test.com", hotel_name: "Mountain Pool Villa", checkin: "20/04/2026", checkout: "22/04/2026", total_price: 6400 }
+        ];
+        let mockAdminContacts = [
+            { id: 1, name: "นาย ณัฐวุฒิ", email: "nattawutsc22@gmail.com", subject: "ก๊อกน้ำพังครับ", message: "มาแก้ให้หน่อยครับ" },
+            { id: 2, name: "ลูกค้า A", email: "client_a@test.com", subject: "สอบถาม", message: "อยากทราบว่ามีที่จอดรถไหมคะ?" }
+        ];
+
+        // ตรวจสอบการล็อกอิน และจัดการข้อมูลโปรไฟล์/สิทธิ์แอดมิน
         function checkAuthState() {
             const userStr = localStorage.getItem('staynear_user');
             if (userStr) {
@@ -533,11 +670,172 @@
                 // ใส่ข้อมูลในหน้าติดต่อเราให้อัตโนมัติ
                 document.getElementById('contact-name').value = currentUser.name;
                 document.getElementById('contact-email').value = currentUser.email;
+
+                // เช็คสิทธิ์แอดมิน (แสดงปุ่มหากอีเมลเป็น admin)
+                if (currentUser.email === 'admin@staynear.com') {
+                    document.getElementById('btn-admin-panel').classList.remove('hidden');
+                } else {
+                    document.getElementById('btn-admin-panel').classList.add('hidden');
+                }
+
             } else {
                 currentUser = null;
                 document.getElementById('auth-buttons').classList.remove('hidden');
                 document.getElementById('user-profile').classList.add('hidden');
                 document.getElementById('user-profile').classList.remove('flex');
+                document.getElementById('btn-admin-panel').classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // ฟังก์ชันจัดการแอดมิน (Admin Dashboard)
+        // ==========================================
+        function openAdminModal() {
+            document.getElementById('admin-modal').classList.add('active');
+            switchAdminTab('hotels'); // เปิดแท็บแรกเสมอ
+        }
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.remove('active');
+        }
+
+        function switchAdminTab(tab) {
+            // ซ่อนทุกแท็บและเอาสถานะ active ออก
+            document.querySelectorAll('.admin-view').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.admin-tab').forEach(el => {
+                el.classList.remove('bg-blue-600');
+                el.classList.add('hover:bg-gray-800');
+            });
+            
+            // เปิดแท็บที่เลือก
+            document.getElementById(`admin-view-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('bg-blue-600');
+            document.getElementById(`tab-${tab}`).classList.remove('hover:bg-gray-800');
+            
+            // เรนเดอร์ข้อมูล
+            if(tab === 'hotels') renderAdminHotels();
+            if(tab === 'bookings') renderAdminBookings();
+            if(tab === 'contacts') renderAdminContacts();
+        }
+
+        function renderAdminHotels() {
+            const tbody = document.getElementById('admin-hotels-table');
+            tbody.innerHTML = '';
+            hotelData.forEach(h => {
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-100 hover:bg-blue-50 transition">
+                        <td class="p-4 text-sm text-gray-500">#${h.id}</td>
+                        <td class="p-4"><img src="${h.img}" class="w-16 h-10 object-cover rounded-md shadow-sm" onerror="this.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800'"></td>
+                        <td class="p-4 font-medium text-gray-800">${h.name}</td>
+                        <td class="p-4 text-sm text-gray-600">${h.location}</td>
+                        <td class="p-4 text-xs font-bold"><span class="bg-gray-100 px-2 py-1 rounded text-gray-600">${h.type}</span></td>
+                        <td class="p-4 text-sm text-blue-600 font-bold">฿${h.price.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderAdminBookings() {
+            const tbody = document.getElementById('admin-bookings-table');
+            tbody.innerHTML = '';
+            if(mockAdminBookings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400">ยังไม่มีรายการจอง</td></tr>';
+                return;
+            }
+            mockAdminBookings.forEach((b, index) => {
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-100 hover:bg-blue-50 transition">
+                        <td class="p-4">
+                            <p class="font-bold text-gray-800 text-sm">${b.user_name}</p>
+                            <p class="text-xs text-gray-500">${b.user_email}</p>
+                        </td>
+                        <td class="p-4 font-medium text-blue-700 text-sm">${b.hotel_name}</td>
+                        <td class="p-4 text-sm text-gray-600">${b.checkin}</td>
+                        <td class="p-4 text-sm text-gray-600">${b.checkout}</td>
+                        <td class="p-4 font-bold text-green-600">฿${b.total_price.toLocaleString()}</td>
+                        <td class="p-4">
+                            <button onclick="adminEditBookingDate(${index})" class="bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-1.5 rounded text-xs font-bold transition"><i class="fa-solid fa-pen"></i> แก้ไขวัน</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderAdminContacts() {
+            const grid = document.getElementById('admin-contacts-grid');
+            grid.innerHTML = '';
+            if(mockAdminContacts.length === 0) {
+                grid.innerHTML = '<div class="col-span-full p-8 text-center text-gray-400">ไม่มีข้อความใหม่</div>';
+                return;
+            }
+            mockAdminContacts.forEach(c => {
+                grid.innerHTML += `
+                    <div class="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow transition">
+                        <div class="flex items-center gap-3 mb-3 border-b border-gray-100 pb-3">
+                            <div class="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-lg">${c.name.charAt(0)}</div>
+                            <div>
+                                <p class="font-bold text-gray-800 text-sm">${c.name}</p>
+                                <p class="text-xs text-gray-500">${c.email}</p>
+                            </div>
+                        </div>
+                        <p class="font-bold text-gray-900 text-sm mb-1">เรื่อง: ${c.subject}</p>
+                        <p class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg italic">"${c.message}"</p>
+                    </div>
+                `;
+            });
+        }
+
+        // ฟังก์ชันแอดมิน: เพิ่มที่พัก (จำลอง)
+        function adminSubmitAddHotel(e) {
+            e.preventDefault();
+            const newHotel = {
+                id: hotelData.length + 1,
+                name: document.getElementById('admin-add-name').value,
+                location: document.getElementById('admin-add-location').value,
+                type: document.getElementById('admin-add-type').value,
+                price: parseInt(document.getElementById('admin-add-price').value),
+                img: document.getElementById('admin-add-img').value
+            };
+            
+            // จำลองการเพิ่มลงฐานข้อมูล
+            hotelData.push(newHotel);
+            
+            // รีเฟรชหน้าแอดมินและหน้าหลัก
+            renderAdminHotels();
+            renderHotels(hotelData);
+            
+            document.getElementById('admin-add-hotel-modal').classList.add('hidden');
+            e.target.reset();
+            Swal.fire({ icon: 'success', title: 'เพิ่มที่พักสำเร็จ', timer: 1500, showConfirmButton: false });
+        }
+
+        // ฟังก์ชันแอดมิน: แก้ไขการจอง (จำลอง)
+        async function adminEditBookingDate(index) {
+            const booking = mockAdminBookings[index];
+            const { value: formValues } = await Swal.fire({
+                title: 'แก้ไขวันเข้าพัก',
+                html:
+                    `<p class="text-sm text-gray-500 mb-4">${booking.user_name} - ${booking.hotel_name}</p>
+                    <label class="block text-left text-sm font-bold mb-1">เช็คอิน</label>
+                    <input id="swal-in" class="swal2-input mt-0 w-[80%]" type="text" value="${booking.checkin}">
+                    <label class="block text-left text-sm font-bold mt-3 mb-1">เช็คเอาท์</label>
+                    <input id="swal-out" class="swal2-input mt-0 w-[80%]" type="text" value="${booking.checkout}">`,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึก',
+                cancelButtonText: 'ยกเลิก',
+                preConfirm: () => {
+                    return [
+                        document.getElementById('swal-in').value,
+                        document.getElementById('swal-out').value
+                    ]
+                }
+            });
+
+            if (formValues) {
+                mockAdminBookings[index].checkin = formValues[0];
+                mockAdminBookings[index].checkout = formValues[1];
+                renderAdminBookings();
+                Swal.fire({ icon: 'success', title: 'แก้ไขข้อมูลสำเร็จ', timer: 1500, showConfirmButton: false });
             }
         }
 
@@ -546,24 +844,18 @@
         // ==========================================
         function openProfileModal() {
             if(!currentUser) return;
-            // ดึงข้อมูลปัจจุบันมาแสดงในฟอร์ม
             document.getElementById('profile-name').value = currentUser.name || '';
             document.getElementById('profile-email').value = currentUser.email || '';
             document.getElementById('profile-phone').value = currentUser.phone || '';
-            
-            // แสดงรูปภาพโปรไฟล์ปัจจุบัน
             const avatarUrl = currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=1e3a8a&color=fff`;
             document.getElementById('profile-preview').src = avatarUrl;
-            
-            // ล้างค่า dataset รูปภาพสำรองไว้
             document.getElementById('profile-preview').dataset.base64 = '';
-            
             document.getElementById('profile-modal').classList.add('active');
         }
 
         function closeProfileModal() {
             document.getElementById('profile-modal').classList.remove('active');
-            document.getElementById('profile-upload').value = ''; // Reset input file
+            document.getElementById('profile-upload').value = ''; 
         }
 
         function previewProfileImage(event) {
@@ -573,7 +865,6 @@
                 reader.onload = function(e) {
                     const result = e.target.result;
                     document.getElementById('profile-preview').src = result;
-                    // เก็บข้อมูล Base64 ไว้เตรียมเซฟ
                     document.getElementById('profile-preview').dataset.base64 = result;
                 }
                 reader.readAsDataURL(file);
@@ -582,13 +873,11 @@
 
         function handleUpdateProfile(e) {
             e.preventDefault();
-            
             const btn = document.getElementById('btn-profile-submit');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
             btn.disabled = true;
 
-            // จำลองการอัปเดต โดยบันทึกลง LocalStorage
             setTimeout(() => {
                 const newName = document.getElementById('profile-name').value;
                 const newPhone = document.getElementById('profile-phone').value;
@@ -596,22 +885,20 @@
 
                 currentUser.name = newName;
                 currentUser.phone = newPhone;
-                if(newAvatar) currentUser.avatar = newAvatar; // หากมีการอัปโหลดใหม่ ให้ทับของเดิม
+                if(newAvatar) currentUser.avatar = newAvatar; 
                 
                 localStorage.setItem('staynear_user', JSON.stringify(currentUser));
-                
-                checkAuthState(); // รีเฟรชข้อมูลใน Navbar
+                checkAuthState(); 
                 
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 closeProfileModal();
-                
                 Swal.fire({ icon: 'success', title: 'อัปเดตโปรไฟล์สำเร็จ!', showConfirmButton: false, timer: 1500 });
             }, 800);
         }
 
         // ==========================================
-        // ฟังก์ชันหลักที่สื่อสารกับ Apps Script (แก้ไขเป็น URLSearchParams)
+        // ฟังก์ชันหลักที่สื่อสารกับ Apps Script
         // ==========================================
         async function sendToAPI(payload, buttonId) {
             const btn = document.getElementById(buttonId);
@@ -620,7 +907,6 @@
             btn.disabled = true;
 
             try {
-                // แปลงข้อมูลเป็น Form Data เพื่อให้ Apps Script รับผ่าน e.parameter ได้
                 const formData = new URLSearchParams();
                 for (const key in payload) {
                     formData.append(key, payload[key]);
@@ -628,14 +914,13 @@
 
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    body: formData // ส่งแบบ Form
+                    body: formData 
                 });
                 
                 const result = await response.json();
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return result;
-
             } catch (error) {
                 console.error("API Error:", error);
                 btn.innerHTML = originalText;
@@ -645,7 +930,6 @@
             }
         }
 
-        // สมัครสมาชิก
         async function handleRegister(e) {
             e.preventDefault();
             const payload = {
@@ -666,28 +950,20 @@
             }
         }
 
-        // ==========================================
-        // เข้าสู่ระบบ & แอนิเมชันต้อนรับ
-        // ==========================================
         function showLoginSuccessAnimation(userName) {
             const overlay = document.getElementById('login-success-overlay');
             const content = document.getElementById('login-success-content');
             const msg = document.getElementById('login-success-msg');
             
-            // ตั้งค่าข้อความต้อนรับ
             msg.innerText = `ยินดีต้อนรับ, ${userName}`;
-            
-            // แสดง Overlay ทันที
             overlay.classList.remove('opacity-0', 'pointer-events-none');
             overlay.classList.add('opacity-100');
             
-            // เด้งโลโก้ขึ้นมา
             setTimeout(() => {
                 content.classList.remove('scale-50', 'opacity-0');
                 content.classList.add('scale-100', 'opacity-100');
             }, 50);
 
-            // ซ่อนหน้าต่างแอนิเมชั่นหลังจากผ่านไป 2.5 วินาที
             setTimeout(() => {
                 overlay.classList.remove('opacity-100');
                 overlay.classList.add('opacity-0', 'pointer-events-none');
@@ -699,23 +975,33 @@
 
         async function handleLogin(e) {
             e.preventDefault();
+            const emailInput = document.getElementById('login-email').value;
+            const passwordInput = document.getElementById('login-password').value;
+
+            // --- ส่วนลัด (Bypass) สำหรับแอดมินโดยเฉพาะ ---
+            if(emailInput === 'admin@staynear.com' && passwordInput === '12345') {
+                const userData = { name: 'Admin StayNear', email: 'admin@staynear.com', phone: '', avatar: '' }; 
+                localStorage.setItem('staynear_user', JSON.stringify(userData));
+                checkAuthState();
+                closeAuthModal();
+                showLoginSuccessAnimation('Admin StayNear');
+                return; // จบการทำงาน ไม่ต้องรอ API
+            }
+            // -------------------------------------------
+
             const payload = {
                 action: 'login',
-                email: document.getElementById('login-email').value,
-                password: document.getElementById('login-password').value
+                email: emailInput,
+                password: passwordInput
             };
 
             const res = await sendToAPI(payload, 'btn-login-submit');
             if(res && res.status === 'success') {
-                // เก็บข้อมูลผู้ใช้ที่ Apps Script ส่งกลับมา
                 const userData = { name: res.name, email: res.email, phone: '', avatar: '' }; 
                 localStorage.setItem('staynear_user', JSON.stringify(userData));
                 checkAuthState();
                 closeAuthModal();
-                
-                // เรียกใช้แอนิเมชั่นโลโก้ต้อนรับ แทน SweetAlert
                 showLoginSuccessAnimation(res.name);
-                
             } else if (res) {
                 Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบล้มเหลว', text: res.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
             }
@@ -727,7 +1013,6 @@
             Swal.fire({ icon: 'info', title: 'ออกจากระบบแล้ว', timer: 1500, showConfirmButton: false });
         }
 
-        // ติดต่อเรา
         async function handleContact(e) {
             e.preventDefault();
             const payload = {
@@ -744,6 +1029,9 @@
                 Swal.fire({ icon: 'success', title: 'ส่งข้อความสำเร็จ', text: res.message, confirmButtonColor: '#1e3a8a' });
                 document.getElementById('contact-subject').value = '';
                 document.getElementById('contact-message').value = '';
+                
+                // แอดมิน: เพิ่มเข้า mock แบบเรียลไทม์เพื่อดูได้ทันที
+                mockAdminContacts.unshift({ name: payload.name, email: payload.email, subject: payload.subject, message: payload.message });
             } else if(res) {
                 Swal.fire({ icon: 'error', title: 'ส่งข้อความไม่สำเร็จ', text: res.message });
             }
@@ -755,31 +1043,25 @@
         let currentBookingHotel = null;
         let bookingTotalPrice = 0;
 
-        // ฟังก์ชันแปลงวันที่สำหรับ input[type="date"] (YYYY-MM-DD)
         function formatDateForInput(date) {
             const d = new Date(date);
             let month = '' + (d.getMonth() + 1);
             let day = '' + d.getDate();
             const year = d.getFullYear();
-
             if (month.length < 2) month = '0' + month;
             if (day.length < 2) day = '0' + day;
-
             return [year, month, day].join('-');
         }
 
-        // ฟังก์ชันคำนวณราคาสุทธิเมื่อเปลี่ยนวันที่
         function calculateBookingPrice() {
             if (!currentBookingHotel) return;
-
             const dateInInput = document.getElementById('booking-date-in');
             const dateOutInput = document.getElementById('booking-date-out');
             const btnConfirm = document.getElementById('btn-confirm-booking');
             
-            // อัปเดตเงื่อนไขให้วันเช็คเอาท์ต้องไม่น้อยกว่าวันเช็คอินเสมอ
             if(dateInInput.value) {
                 const minOutDate = new Date(dateInInput.value);
-                minOutDate.setDate(minOutDate.getDate() + 1); // เช็คเอาท์ขั้นต่ำต้อง 1 วันถัดไป
+                minOutDate.setDate(minOutDate.getDate() + 1); 
                 dateOutInput.min = formatDateForInput(minOutDate);
             }
 
@@ -788,24 +1070,20 @@
             const checkInDate = new Date(dateInInput.value);
             const checkOutDate = new Date(dateOutInput.value);
 
-            // คำนวณจำนวนวัน (1 วัน = 1000ms * 3600s * 24h)
             const timeDiff = checkOutDate.getTime() - checkInDate.getTime();
             const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
             if (nights <= 0) {
                 document.getElementById('booking-price-calc').innerText = `วันที่ไม่ถูกต้อง`;
                 document.getElementById('booking-total').innerText = `฿0`;
-                // ปิดปุ่มกดยืนยัน
                 btnConfirm.disabled = true;
                 btnConfirm.classList.add('opacity-50', 'cursor-not-allowed');
                 return;
             }
 
-            // เปิดปุ่มยืนยัน
             btnConfirm.disabled = false;
             btnConfirm.classList.remove('opacity-50', 'cursor-not-allowed');
 
-            // คำนวณราคา
             bookingTotalPrice = currentBookingHotel.price * nights;
             document.getElementById('booking-price-calc').innerText = `฿${currentBookingHotel.price.toLocaleString()} x ${nights} คืน`;
             document.getElementById('booking-total').innerText = `฿${bookingTotalPrice.toLocaleString()}`;
@@ -826,7 +1104,6 @@
             document.getElementById('booking-type').innerText = currentBookingHotel.type;
             document.getElementById('booking-user-info').innerHTML = `ผู้ทำรายการ: <b>${currentUser.name}</b> (${currentUser.email})`;
             
-            // --- สร้างแกลลอรี่ภาพพัก ---
             const galleryContainer = document.getElementById('booking-gallery');
             galleryContainer.innerHTML = ''; 
             
@@ -834,9 +1111,9 @@
                 ? currentBookingHotel.gallery 
                 : [
                     currentBookingHotel.img, 
-                    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800", // ห้องนอน
-                    "https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800", // เตียง
-                    "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800"  // ห้องน้ำ
+                    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800", 
+                    "https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800", 
+                    "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800"  
                 ];
 
             images.forEach((src, idx) => {
@@ -856,7 +1133,6 @@
                 galleryContainer.appendChild(thumb);
             });
 
-            // ตั้งค่าวันที่เริ่มต้นตอนเปิดหน้าต่าง (เข้าพักวันพรุ่งนี้ ออกวันมะรืนนี้)
             const today = new Date();
             const defaultDateIn = new Date(today); defaultDateIn.setDate(today.getDate() + 1);
             const defaultDateOut = new Date(defaultDateIn); defaultDateOut.setDate(defaultDateIn.getDate() + 1);
@@ -864,21 +1140,15 @@
             const inputIn = document.getElementById('booking-date-in');
             const inputOut = document.getElementById('booking-date-out');
 
-            // ป้องกันไม่ให้เลือกวันที่ย้อนหลัง
             inputIn.min = formatDateForInput(today);
-            
-            // เซ็ตค่าเริ่มต้น
             inputIn.value = formatDateForInput(defaultDateIn);
             inputOut.value = formatDateForInput(defaultDateOut);
 
-            // คำนวณราคาครั้งแรกสุด
             calculateBookingPrice();
-
             document.getElementById('booking-modal').classList.add('active');
         }
 
         async function confirmBooking() {
-            // อ่านค่าแบบ Date Locale Format เพื่อให้แสดงในชีตสวยๆ (วัน/เดือน/ปี)
             const checkinVal = document.getElementById('booking-date-in').value;
             const checkoutVal = document.getElementById('booking-date-out').value;
             const checkinDisplay = new Date(checkinVal).toLocaleDateString('th-TH');
@@ -902,6 +1172,10 @@
                     text: res.message,
                     confirmButtonColor: '#1e3a8a'
                 });
+                
+                // แอดมิน: เพิ่มข้อมูลจำลองเพื่อให้แสดงในหน้าจัดการได้ทันที
+                mockAdminBookings.unshift(payload);
+                
             } else if(res) {
                 Swal.fire({ icon: 'error', title: 'จองไม่สำเร็จ', text: res.message });
             }
@@ -954,7 +1228,6 @@
             const grid = document.getElementById('hotel-grid');
             grid.innerHTML = '';
 
-            // ถ้าค้นหาแล้วไม่เจอข้อมูลเลย
             if (data.length === 0) {
                 grid.innerHTML = `
                     <div class="col-span-full py-16 text-center flex flex-col items-center justify-center bg-white rounded-2xl border-2 border-dashed border-gray-300 transform transition hover:scale-[1.01]" data-aos="zoom-in">
@@ -990,9 +1263,6 @@
             if (typeof AOS !== 'undefined') setTimeout(() => { AOS.refresh(); }, 100);
         }
 
-        // ==========================================
-        // ระบบค้นหา & ลูกเล่นช่องค้นหา (Typewriter)
-        // ==========================================
         function executeSearch() {
             const destInput = document.getElementById('search-destination').value.toLowerCase().trim();
             const btnIcon = document.getElementById('btn-icon');
@@ -1000,16 +1270,13 @@
             const resultText = document.getElementById('search-result-text');
             const resultCount = document.getElementById('result-count');
             
-            // เปลี่ยนปุ่มเป็นสถานะโหลด
             if (btnIcon) btnIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             if (btnText) btnText.innerText = 'กำลังหา...';
             
             renderSkeleton();
             document.getElementById('hotel-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-            // จำลองเวลาค้นหานิดนึงให้ดูสมจริง
             setTimeout(() => {
-                // กรองข้อมูล (ค้นหาจาก ชื่อ, จังหวัด หรือ ชนิดที่พัก)
                 const results = hotelData.filter(hotel => 
                     hotel.location.toLowerCase().includes(destInput) || 
                     hotel.name.toLowerCase().includes(destInput) ||
@@ -1019,7 +1286,6 @@
 
                 renderHotels(results);
                 
-                // สรุปผลการค้นหา
                 if(destInput !== '') {
                     if (resultCount) resultCount.innerText = results.length;
                     if (resultText) resultText.classList.remove('hidden');
@@ -1027,14 +1293,12 @@
                     if (resultText) resultText.classList.add('hidden');
                 }
                 
-                // คืนสถานะปุ่มกลับมา
                 if (btnIcon) btnIcon.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
                 if (btnText) btnText.innerText = 'ค้นหา';
                 
             }, 600);
         }
 
-        // เอฟเฟกต์พิมพ์อัตโนมัติ (Typewriter) ในช่องค้นหา
         const placeholders = ["ค้นหา ภูเก็ต...", "ค้นหา เชียงใหม่...", "ค้นหา พูลวิลล่า...", "พิมพ์ชื่อที่พัก..."];
         let placeholderIndex = 0;
         let charIndex = 0;
@@ -1076,7 +1340,6 @@
             }
         }
 
-        // ซ่อนข้อความพิมพ์อัตโนมัติเวลาผู้ใช้พิมพ์เอง
         if(inputEl) {
             inputEl.addEventListener('input', () => {
                 if(inputEl.value.length > 0) {
@@ -1089,12 +1352,9 @@
             });
         }
 
-        // เริ่มต้นการทำงานเมื่อโหลดหน้าเสร็จ
         document.addEventListener('DOMContentLoaded', () => {
             checkAuthState();
             fetchHotelData();
-            
-            // เริ่มเอฟเฟกต์พิมพ์อัตโนมัติ
             setTimeout(typeWriter, 1000);
             
             if (typeof AOS !== 'undefined') AOS.init({ once: true, offset: 50 });
@@ -1110,7 +1370,8 @@
                 closeAuthModal(); 
                 closeContactModal(); 
                 closeBookingModal();
-                closeProfileModal(); // เพิ่มปิดโปรไฟล์โมดอล
+                closeProfileModal(); 
+                closeAdminModal(); // เพิ่มปิด Admin Modal เมื่อคลิกข้างนอก
             }
         });
 
